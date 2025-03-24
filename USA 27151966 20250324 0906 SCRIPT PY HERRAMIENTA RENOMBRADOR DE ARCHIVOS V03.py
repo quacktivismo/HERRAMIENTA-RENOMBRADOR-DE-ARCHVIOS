@@ -83,6 +83,7 @@ def cambiar_fecha_archivo_mac(file_path, new_creation_time):
 def crear_interfaz_principal():
     global ventana_principal, etiqueta_carpeta, formato_seleccionado, texto_prefijo, texto_sufijo
     global boton_formato1, boton_formato2, tipo_fecha, fecha_fija, random_frame
+
     ventana = tk.Tk()
     ventana_principal = ventana
     ventana.title("Renombrador de Archivos")
@@ -91,17 +92,45 @@ def crear_interfaz_principal():
     ventana.resizable(True, True)
     theme = set_dark_theme()
     ventana.configure(bg=theme["bg"])
-    
-    # Se vincula el evento de redimensionado para actualizar las fuentes.
+
+    # Vincular eventos
     ventana.bind("<Configure>", on_resize)
-    
     ventana.bind("<F11>", toggle_fullscreen)
-    
-    contenedor = tk.Frame(ventana, bg=theme["bg"], padx=20, pady=20)
-    contenedor.grid(sticky="nsew")
+
+    # Configuración del grid en la ventana principal
     ventana.grid_rowconfigure(0, weight=1)
     ventana.grid_columnconfigure(0, weight=1)
-    
+
+    # --- CONFIGURACIÓN DEL SCROLL ---
+    # Se crea un frame contenedor para el canvas y la scrollbar
+    contenedor_canvas = tk.Frame(ventana, bg=theme["bg"])
+    contenedor_canvas.grid(row=0, column=0, sticky="nsew")
+
+    # Canvas que contendrá el frame con el contenido
+    canvas = tk.Canvas(contenedor_canvas, bg=theme["bg"], highlightthickness=0)
+    canvas.pack(side="left", fill="both", expand=True)
+
+    # Barra de desplazamiento vertical
+    scrollbar = tk.Scrollbar(contenedor_canvas, orient="vertical", command=canvas.yview)
+    scrollbar.pack(side="right", fill="y")
+
+    # Configuración del canvas para el scroll
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Frame donde se agregará el contenido (todos los widgets originales)
+    contenedor = tk.Frame(canvas, bg=theme["bg"], padx=20, pady=20)
+    # Se inserta el frame en el canvas
+    canvas.create_window((0, 0), window=contenedor, anchor="nw")
+
+    # Actualizar la región de scroll cuando el tamaño del contenedor cambie
+    contenedor.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    # Opcional: Permitir el scroll con la rueda del mouse en el canvas
+    def _on_mousewheel(event):
+        canvas.yview_scroll(-1 * (event.delta // 120), "units")
+    canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+    # --- CONTENIDO ORIGINAL ---
     # Encabezado
     header_frame = tk.Frame(contenedor, bg=theme["bg"])
     header_frame.grid(row=0, column=0, sticky="ew", pady=(0,10))
@@ -109,7 +138,7 @@ def crear_interfaz_principal():
              bg=theme["bg"], fg=theme["fg"]).pack(anchor="w")
     tk.Label(header_frame, text="Herramienta desarrollada por Andrey Bergert", font=("SF Pro", 11),
              bg=theme["bg"], fg="#BBBBBB").pack(anchor="w")
-    
+
     # Sección de selección de carpeta
     seccion_carpeta = tk.LabelFrame(contenedor, text="Selección de Carpeta", bg=theme["bg"],
                                     fg=theme["fg"], font=("SF Pro", 11), padx=15, pady=15)
@@ -129,7 +158,7 @@ def crear_interfaz_principal():
               fg=theme["fg"], font=("SF Pro", 11), relief="flat", padx=10, pady=5,
               activebackground=theme["button_active_bg"], activeforeground=theme["fg"],
               command=seleccionar_carpeta_puntual).pack(side="left", padx=5, expand=True, fill="x")
-    
+
     # Sección de formato de renombrado
     seccion_formato = tk.LabelFrame(contenedor, text="Formato de Renombrado", bg=theme["bg"],
                                     fg=theme["fg"], font=("SF Pro", 11), padx=15, pady=15)
@@ -148,7 +177,7 @@ def crear_interfaz_principal():
                                activebackground=theme["button_active_bg"], activeforeground=theme["fg"],
                                command=lambda: seleccionar_formato("AAAAMMDD HHMMSS"))
     boton_formato2.pack(side="left", padx=5, expand=True, fill="both")
-    
+
     # Sección para definir el tipo de fecha a asignar
     frame_tipo_fecha = tk.LabelFrame(seccion_formato, text="Tipo de Fecha a Asignar", bg=theme["bg"],
                                      fg=theme["fg"], font=("SF Pro", 11), padx=15, pady=10)
@@ -162,10 +191,9 @@ def crear_interfaz_principal():
                                 insertbackground="white", relief="flat", borderwidth=3)
     entry_fecha_fija.pack(fill="x", pady=5)
     tk.Label(frame_tipo_fecha, text="(Formato: YYYYMMDD HHMMSS)", bg=theme["bg"], fg=theme["fg"], font=("SF Pro", 10)).pack(anchor="w")
-    # Opción aleatoria: al seleccionarla, se mostrarán opciones adicionales para aleatorización parcial.
     tk.Radiobutton(frame_tipo_fecha, text="Fecha y hora aleatoria", variable=tipo_fecha_var, value="aleatoria",
                    bg=theme["bg"], fg=theme["fg"], font=("SF Pro", 11)).pack(anchor="w")
-    
+
     # Frame adicional para opciones de aleatorización (visible solo si se selecciona "aleatoria")
     random_frame = tk.Frame(frame_tipo_fecha, bg=theme["bg"])
     random_frame.pack(fill="x", pady=5)
@@ -181,16 +209,14 @@ def crear_interfaz_principal():
                    bg=theme["bg"], fg=theme["fg"], font=("SF Pro", 10)).grid(row=0, column=2, sticky="w", padx=5)
     tk.Checkbutton(random_frame, text="Aleatorizar Segundos", variable=global_var_s,
                    bg=theme["bg"], fg=theme["fg"], font=("SF Pro", 10)).grid(row=0, column=3, sticky="w", padx=5)
-    
-    # Función para actualizar las variables globales de aleatorización según la selección del usuario.
+
     def actualizar_opciones_aleatorias():
         global random_completo, random_md, random_hm, random_s
         random_completo = global_var_completo.get()
         random_md = global_var_md.get()
         random_hm = global_var_hm.get()
         random_s = global_var_s.get()
-    # Se actualizan las opciones cada vez que se presiona el botón de ejecutar.
-    
+
     # Sección de personalización de texto
     seccion_texto = tk.LabelFrame(contenedor, text="Personalización de Texto", bg=theme["bg"],
                                   fg=theme["fg"], font=("SF Pro", 11), padx=15, pady=15)
@@ -211,14 +237,13 @@ def crear_interfaz_principal():
     tk.Checkbutton(seccion_texto, text="Mantener nombre original (solo letras y números)",
                    variable=mantener_original, bg=theme["bg"], fg=theme["fg"], font=("SF Pro", 11),
                    selectcolor="#252525", activebackground=theme["bg"], activeforeground=theme["fg"]).pack(anchor="w", pady=5)
-    
+
     # Sección de ejecución
     seccion_ejecutar = tk.LabelFrame(contenedor, text="Ejecutar", bg=theme["bg"],
                                      fg=theme["fg"], font=("SF Pro", 11), padx=15, pady=15)
     seccion_ejecutar.grid(row=4, column=0, sticky="ew", pady=10)
     def ejecutar_renombrado():
         global tipo_fecha, fecha_fija
-        # Se actualizan las opciones de aleatorización.
         actualizar_opciones_aleatorias()
         tipo_fecha = tipo_fecha_var.get()
         if tipo_fecha == "fija":
@@ -232,7 +257,7 @@ def crear_interfaz_principal():
     tk.Button(seccion_ejecutar, text="RENOMBRAR ARCHIVOS", bg="#007BFF", fg="white",
               font=("SF Pro", 14, "bold"), relief="flat", padx=10, pady=15,
               activebackground="#0069D9", activeforeground="white", command=ejecutar_renombrado).pack(fill="x", pady=5)
-    
+
     # Botón de aviso legal
     aviso_legal_frame = tk.Frame(contenedor, bg=theme["bg"])
     aviso_legal_frame.grid(row=5, column=0, sticky="ew", pady=10)
@@ -240,15 +265,14 @@ def crear_interfaz_principal():
                bg="#555555", fg="white", font=("SF Pro", 10, "bold"),
                relief="flat", padx=20, pady=12, activebackground="#555555",
                activeforeground="white", command=mostrar_avisolegal).pack(fill="x", pady=5)
-    
+
     # Pie de página
-    tk.Label(contenedor, text="v2.0", bg=theme["bg"], fg="#8a8a8d", font=("SF Pro", 10)).grid(row=6, column=0, sticky="w", pady=(5, 0))
-    
+    tk.Label(contenedor, text="3.0", bg=theme["bg"], fg="#8a8a8d", font=("SF Pro", 10)).grid(row=6, column=0, sticky="w", pady=(5, 0))
+
     center_window(ventana)
     return ventana
 
 def seleccionar_formato(formato):
-    # Función que asigna el formato de fecha seleccionado y actualiza la apariencia de los botones.
     global formato_seleccionado
     formato_seleccionado = formato
     theme = set_dark_theme()
@@ -307,7 +331,7 @@ textos_frecuentes = cargar_textos_frecuentes()
 def limpiar_nombre_original(nombre):
     # Convierte el nombre a mayúsculas y elimina cualquier carácter que no sea A-Z o 0-9.
     nombre = nombre.upper()
-    return re.sub(r'[^A-Z0-9]', '', nombre)
+    return re.sub(r'[^\w\s]', '', nombre)
 
 # =============================================================================
 # FUNCIONES PARA GENERAR FECHA ALEATORIA CON CONTROL PARCIAL
@@ -441,9 +465,9 @@ def renombrar_archivos(formato, carpeta, texto_prefijo="", texto_sufijo="", mant
             # Si se mantiene el nombre original, se limpia para eliminar caracteres especiales.
             original_part = f" {limpiar_nombre_original(file_path.stem)}" if mantener_original else ""
             new_name = (f"{texto_prefijo} " if texto_prefijo else "") + \
-                       formatted_time + \
-                       (f" {texto_sufijo}" if texto_sufijo else "") + \
-                       original_part + file_extension
+           formatted_time + \
+           (f" {texto_sufijo}" if texto_sufijo else "") + \
+           original_part + file_extension
             # Aplicar reemplazo de texto si está definido.
             if texto_buscar and texto_buscar in new_name:
                 new_name = new_name.replace(texto_buscar, texto_reemplazar)
