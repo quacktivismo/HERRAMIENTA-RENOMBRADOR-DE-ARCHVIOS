@@ -1,4 +1,4 @@
-# HERRAMIENTA-RENOMBRADOR-DE-ARCHVIOS
+# HERRAMIENTA-RENOMBRADOR-DE-ARCHVIOS WINDOWS
 Este script de Python proporciona una interfaz gráfica (GUI) construida con Tkinter para renombrar archivos en masa de forma estructurada, siguiendo convenciones de nombres basadas en fechas y opciones personalizadas.
 
 🚀 Características principales
@@ -11,7 +11,7 @@ Este script de Python proporciona una interfaz gráfica (GUI) construida con Tki
 
 ✅ Limpieza del nombre original: Si se elige conservar el nombre original del archivo, este se limpia automáticamente, eliminando caracteres especiales y dejando solo letras mayúsculas (A-Z) y números (0-9).
 
-✅ Compatibilidad con Windows y macOS: Se emplea pywin32 para modificar los metadatos en sistemas Windows y os.utime() en macOS.
+✅ Compatibilidad con Windows: Se emplea pywin32 para modificar los metadatos en sistemas Windows
 
 1️⃣ Configuración global y carga de datos
 python
